@@ -2,7 +2,7 @@
 
 ## stake-deregister-tx.sh
 
-Creates a transaction to to deregister the wallet from staking, and to reclaim the stake key deposit. The rewards balance must be zero at this point.
+Creates a transaction to deregister the wallet from staking, and to reclaim the stake key deposit. The rewards balance must be zero at this point.
 
 **Warning:**  
 Manual transaction generation is dangerous.

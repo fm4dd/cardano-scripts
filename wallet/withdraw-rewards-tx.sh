@@ -13,7 +13,7 @@
 # balance checks and transaction fee calculation.
 #
 # Usage:
-# ./withdraw-rewards-tx.sh ~/h2-wallet
+# ./withdraw-rewards-tx.sh ~/my-wallet
 # ##########################################################
 # ATTENTION: Manual transaction generation is dangerous !!!!
 # !! Unintented key access may cause loss of funds !!!!!!!!!

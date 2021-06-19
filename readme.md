@@ -35,3 +35,14 @@ Creates a transaction to withdraw all received staking rewards from the wallet's
 
 Creates a transaction to to deregister the wallet from staking, and to reclaim the stake key deposit. [...details](docs/stake-deregister-tx.md)
 
+[stake-getandstop-tx.sh](wallet/stake-getandstop-tx.sh)
+
+Creates a transaction that withdraws the rewards balance into a wallet address, and deregisters the wallet from staking, reclaiming the stake key deposit. This combines the function of withdraw-rewards-tx.sh and stake-dergister-tx.sh into a single transaction. [...details](docs/stake-getandstop-tx.md)
+
+
+## StakePool-related scripts
+
+[pool-deregister-tx.sh](pool/pool-deregister-tx.sh)
+
+Creates a transaction to to deregister the stake pool producer node from staking, and to reclaim the pool deposit. This stops the stake pool operation with a minimum lead time of 2 epochs. [...details](docs/pool-deregister-tx.md)
+

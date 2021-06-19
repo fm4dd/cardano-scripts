@@ -39,10 +39,13 @@ pi@ubuntu:~/scripts$ ./ledger2master.py
 final masterkey str: b88077c0eff291fedb7923efa2d8f990464957b1479d1fb5b885a56223c9dd5d959b790117e14933a5e8************************************************************************************d6583e3297ef9d446a7e9ac8
 ```
 
+The resulting 192-char hex string represents the Cardano 96-byte wallet master key in BIP32-Ed25519 format (64 bytes ed25519 extended secret key, followed by 32 bytes chain code).
+
 ### Credits
 
 This code has been converted to Python from the original Javascript 'ledger2pool' located at https://repl.it/@PalDorogi/ledger2pool#index.js. All credits to the original author PalDorogi.
 
 ### Links
 
-[Original Cardano Code Source](https://github.com/input-output-hk/cardano-wallet/wiki/Wallet-Cryptography-and-Encoding#Ledger)
+[Original Cardano Code Source](https://github.com/input-output-hk/cardano-wallet/wiki/Wallet-Cryptography-and-Encoding#Ledger)  
+[Cardano Wallet Key Generation](https://cips.cardano.org/cips/cip3)

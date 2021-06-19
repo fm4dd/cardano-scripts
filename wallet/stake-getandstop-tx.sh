@@ -1,39 +1,39 @@
 #!/bin/bash
 # ##########################################################
-# stake-deregister-tx.sh
-# Takes a stake-address deregistration cert and builds a
-# signed transaction to submit to the Cardano blockchain
-# The output file is named stake-stop-tx.signed
+# stake-getandstop-tx.sh
+# This scrip builds a signed transaction to withdraw all
+# rewards from the stake address, and stops staking by 
+# deregistering the stake key, retrieving the key deposit.
+# The output file is named stake-getstop-tx.signed
 # 
-# requires the wallet keys extracted, the cert file
-# created with cardano-cli stake-address \
-# deregistration-certificate, and the payment address
+# requires the wallet keys extracted and a payment address
 # with enough balance to pay the transaction fee.
 #
-# Connects to a synced cardano node over SSH for
-# balance checks and transaction fee calculation.
+# Connects to a synced cardano node (using Dadalus wallet
+# node of the local system with ENV CARDANO_NODE_SOCKET_PATH
+# ="~/.local/share/Daedalus/mainnet/cardano-node.socket")
+# for balance checks and transaction fee calculation.
 #
 # Usage:
-# ./stake-deregister-tx.sh ~/my-wallet stake-stop.cert
+# ./stake-getandstop-tx.sh ~/my-wallet
 # ##########################################################
 # ATTENTION: Manual transaction generation is dangerous !!!!
 # !! Unintented key access may cause loss of funds !!!!!!!!!
 # !! Wrong execution, typos etc may cause loss of funds !!!!
 # ##########################################################
 
-# Synced Cardano node CLI connect info, remote host
-SSHTARGET="pi@192.168.1.22"
-SOCK="CARDANO_NODE_SOCKET_PATH=/home/pi/cardano/relay/node.sock"
-ONLINECLI="/home/pi/cardano/relay/bin/cardano-cli"
-# for CLI commands that don't need blockchain lookup
-CCLI="~/bin/cardano-cli"
-OUTFILE="stake-stop-tx.signed"
+# Synced Cardano node CLI connect info
+SOCK="CARDANO_NODE_SOCKET_PATH=$HOME/.local/share/Daedalus/mainnet/cardano-node.socket"
+export "$SOCK"
+ONLINECLI="$HOME/bin/cardano-cli"
+OUTFILE="stake-getstop-tx.signed"
+CERT="key-deregistration.cert"
 
 # ####################################################
-# Check cmdline args: wallet dir stake-stop.cert file
+# Check cmdline args: wallet dir, e.g. "~/my-wallet"
 # ####################################################
-[[ "$#" -ne 2 ]] && {
-       echo "usage: `basename $0` <wallet-dir> <stake-stop.cert>" >&2
+[[ "$#" -ne 1 ]] && {
+       echo "usage: `basename $0` <wallet-dir>" >&2
        exit 127
 }
 
@@ -47,22 +47,23 @@ WALLET="$1"
     exit 127
 }
 
-# ####################################################
-# Assign the 2nd parameter as the deregistration cert
-# ####################################################
-CERT="$2"
-[[ ! -f "$CERT" ]] && {
-    echo "Error: Stake address deregistration cert file not found, exiting..." >&2
-    exit 127
-}
-
 # ###############################################
 # Prerequisites - Exit if we miss any keys
 # ###############################################
+[[ ! -f "$WALLET"/stake.vkey ]] && { echo "missing node.vkey, exit"; exit; }
+[[ ! -f "$WALLET"/stake.skey ]] && { echo "missing node.skey, exit"; exit; }
+[[ ! -f "$WALLET"/stake.addr ]] && { echo "missing stake.addr, exit"; exit; }
 [[ ! -f "$WALLET"/payment.addr ]] && { echo "missing payment.addr, exit"; exit; }
-[[ ! -f "$WALLET"/stake.vkey ]] && { echo "missing stake.vkey, exit"; exit; }
-[[ ! -f "$WALLET"/stake.skey ]] && { echo "missing stake.skey, exit"; exit; }
 [[ ! -f "$WALLET"/payment.skey ]] && { echo "missing payment.skey, exit"; exit; }
+
+# ###############################################
+# Create key deregistration file (certificate)
+# ###############################################
+$ONLINECLI stake-address deregistration-certificate \
+--stake-verification-key-file "$WALLET"/stake.vkey \
+--out-file $CERT
+[[ ! -f "$CERT" ]] && { echo "Error creating deregistration file, exit"; exit; }
+echo "Created stake key deregistration file: `ls -l $CERT`"
 
 # ###############################################
 # How long should the transaction be valid?
@@ -78,7 +79,7 @@ echo "Using transaction expiration time: $exp_sec"
 # Find the current slot of the blockchain to use
 # for calculation of the invalid-thereafter value
 # ###############################################
-currentSlot=$(ssh ${SSHTARGET}  "export $SOCK && $ONLINECLI query tip --mainnet" | jq -r '.slot')
+currentSlot=$($ONLINECLI query tip --mainnet | jq -r '.slot')
 echo "Current Slot: $currentSlot"
 
 # ###############################################
@@ -86,7 +87,7 @@ echo "Current Slot: $currentSlot"
 # ###############################################
 payAddr=$(cat "$WALLET"/payment.addr)
 echo "Payment Addr: $payAddr"
-BalanceOut=$(ssh ${SSHTARGET}  "export $SOCK && $ONLINECLI query utxo --address $payAddr --mainnet" | tail -n +3 | sort -k3 -nr)
+BalanceOut=$($ONLINECLI query utxo --address $payAddr --mainnet | tail -n +3 | sort -k3 -nr)
 
 # ###############################################
 # Check if payment address returned any balance
@@ -94,30 +95,54 @@ BalanceOut=$(ssh ${SSHTARGET}  "export $SOCK && $ONLINECLI query utxo --address 
 if [[ $BalanceOut != *"lovelace"* ]] ; then
     echo "Error: No balance for address $payAddr, exiting..."
     exit 127
+else
+    echo "Got balance of $payAddr"
 fi
-echo "Got balance of $payAddr"
 
 # ###############################################
 # Calculate the payment address balance
 # ###############################################
 tx_in=""
-total_balance=0
+dst_balance=0
 txcnt=0
 while read -r utxo; do
     in_addr=$(awk '{ print $1 }' <<< "${utxo}")
     idx=$(awk '{ print $2 }' <<< "${utxo}")
     utxo_balance=$(awk '{ print $3 }' <<< "${utxo}")
-    total_balance=$((${total_balance}+${utxo_balance}))
+    dst_balance=$((${dst_balance}+${utxo_balance}))
     echo "Incoming->Tx: ${in_addr}#${idx} ADA: ${utxo_balance}"
     tx_in="${tx_in} --tx-in ${in_addr}#${idx}"
     let "txcnt=txcnt+1"
 done <<< "$BalanceOut"
-echo "Addr Balance: ${total_balance} from UTXOs: ${txcnt}"
+echo "Addr Balance: ${dst_balance} from UTXOs: ${txcnt}"
+
+# ###############################################
+# Get the stake address rewards output
+# ###############################################
+stakeAddr=$(cat "$WALLET"/stake.addr)
+echo "Rewards Addr: $stakeAddr"
+RewardsOut=$($ONLINECLI query stake-address-info --address $stakeAddr --mainnet)
+#echo "Rewards output:"
+#echo "$RewardsOut"
+
+# ###############################################
+# Check if stake address returned any rewards,
+# e.g.    "rewardAccountBalance": 5395880,
+# ###############################################
+rewards_bal=0
+if [[ $RewardsOut == *"rewardAccountBalance"* ]] ; then
+    echo "Got balance of $stakeAddr"
+    rewards_bal=$(echo "$RewardsOut" | grep "rewardAccountBalance" | awk '{ print $2 }' | tr -d ,)
+fi
+
+
+echo "DstAddr Balance: $dst_balance"
+echo "Rewards Balance: $rewards_bal"
 
 # ###############################################
 # Build raw transaction file tx.tmp to get fee
 # ###############################################
-$CCLI transaction build-raw \
+$ONLINECLI transaction build-raw \
     ${tx_in} \
     --tx-out "$payAddr"+"0"  \
     --certificate-file "$CERT" \
@@ -130,12 +155,12 @@ echo "TX inputfile: `ls -l tx.tmp`"
 # ###############################################
 # Get params file
 # ###############################################
-ssh ${SSHTARGET}  "export $SOCK && $ONLINECLI query protocol-parameters --mainnet" > params.json
+$ONLINECLI query protocol-parameters --mainnet > params.json
 
 # ###############################################
 # Calculate the minimum fee
 # ###############################################
-fee=$("$CCLI" transaction calculate-min-fee \
+fee=$($ONLINECLI transaction calculate-min-fee \
     --tx-body-file tx.tmp \
     --tx-in-count ${txcnt} \
     --tx-out-count 1 \
@@ -149,16 +174,16 @@ echo "Transact Fee: $fee"
 # Calculate the balance after transaction fee
 # ###############################################
 deposit=2000000
-#txOut=$((${total_balance}-${fee}))
-txOut=$((${total_balance}-${fee}+${deposit}))
+txOut=$((${dst_balance}-${fee}+${deposit}+${rewards_bal}))
 echo "ADA after TX: ${txOut}"
 
 # ###############################################
 # Build the final transaction
 # ###############################################
-"$CCLI" transaction build-raw \
+$ONLINECLI transaction build-raw \
     ${tx_in} \
     --tx-out "$payAddr"+"$txOut"  \
+    --withdrawal "$stakeAddr"+"$rewards_bal" \
     --invalid-hereafter $(( ${currentSlot} + ${exp_sec})) \
     --fee ${fee} \
     --certificate-file "$CERT" \
@@ -169,7 +194,7 @@ echo "TX inputfile: `ls -l tx.raw`"
 # ###############################################
 # Sign transaction with payment.skey & stake.skey
 # ###############################################
-"$CCLI" transaction sign \
+$ONLINECLI transaction sign \
     --tx-body-file tx.raw \
     --signing-key-file "$WALLET"/payment.skey \
     --signing-key-file "$WALLET"/stake.skey \
@@ -180,5 +205,4 @@ echo
 echo "executing temp file cleanup: rm params.json tx.raw tx.tmp"
 rm params.json tx.raw tx.tmp
 echo "To submit, type: "
-echo "scp $OUTFILE $SSHTARGET:~/cardano"
 echo "$ONLINECLI transaction submit --tx-file $OUTFILE --mainnet"
