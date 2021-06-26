@@ -2,7 +2,7 @@
 
 ## stake-getandstop-tx.sh
 
-Creates a transaction that withdraws the rewards balance into a wallet address, and deregisters the wallet from staking, reclaiming the stake key deposit. This combines the function of withdraw-rewards-tx.sh and stake-dergister-tx.sh into a single transaction.
+Creates a transaction that withdraws the rewards balance into a wallet address, and deregisters the wallet from staking, reclaiming the stake key deposit. This combines the function of withdraw-rewards-tx.sh and stake-deregister-tx.sh into a single transaction.
 
 **Warning:**  
 Manual transaction generation is dangerous.

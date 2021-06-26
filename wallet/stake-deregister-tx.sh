@@ -26,7 +26,7 @@ SSHTARGET="pi@192.168.1.22"
 SOCK="CARDANO_NODE_SOCKET_PATH=/home/pi/cardano/relay/node.sock"
 ONLINECLI="/home/pi/cardano/relay/bin/cardano-cli"
 # for CLI commands that don't need blockchain lookup
-CCLI="~/bin/cardano-cli"
+CCLI="$HOME/bin/cardano-cli"
 OUTFILE="stake-stop-tx.signed"
 
 # ####################################################

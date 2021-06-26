@@ -37,8 +37,11 @@ Creates a transaction to to deregister the wallet from staking, and to reclaim t
 
 [stake-getandstop-tx.sh](wallet/stake-getandstop-tx.sh)
 
-Creates a transaction that withdraws the rewards balance into a wallet address, and deregisters the wallet from staking, reclaiming the stake key deposit. This combines the function of withdraw-rewards-tx.sh and stake-dergister-tx.sh into a single transaction. [...details](docs/stake-getandstop-tx.md)
+Creates a transaction that withdraws the rewards balance into a wallet address, and deregisters the wallet from staking, reclaiming the stake key deposit. This combines the function of withdraw-rewards-tx.sh and stake-deregister-tx.sh into a single transaction. [...details](docs/stake-getandstop-tx.md)
 
+[transfer-wallet-tx.sh](wallet/transfer-wallet-tx.sh)
+
+Creates a signed transaction to withdraw all funds from all address in the wallet with a single transaction. The remaining wallet balance will be zero. This assumes that the rewards address is already zero. [...details](docs/transfer-wallet-tx.md)
 
 ## StakePool-related scripts
 
@@ -46,3 +49,6 @@ Creates a transaction that withdraws the rewards balance into a wallet address, 
 
 Creates a transaction to to deregister the stake pool producer node from staking, and to reclaim the pool deposit. This stops the stake pool operation with a minimum lead time of 2 epochs. [...details](docs/pool-deregister-tx.md)
 
+[pool-new-kesperiod.sh](pool/pool-new-kesperiod.sh)
+
+Creates a new operational cert with an updated expiration date. Currently, the certificate expires after 93 days (KES period). Each new cert gets a incremented issuer number (serial) and start date, resetting the KES period. If not renewed, the producer node stops working. [...details](docs/pool-new-kesperiod.md)
