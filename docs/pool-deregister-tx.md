@@ -2,7 +2,7 @@
 
 ## pool-deregister-tx.sh
 
-Creates a transaction to to deregister the stake pool producer node from staking, and to reclaim the pool deposit. This stops the stake pool operation with a lead time of min 2 epochs, and max 18 epochs (defined in protocol parameters).
+Creates a transaction to deregister the stake pool producer node from staking, and to reclaim the pool deposit. This stops the stake pool operation with a lead time of min 2 epochs, and max 18 epochs (defined in protocol parameters).
 
 **Warning:**  
 Manual transaction generation is dangerous.

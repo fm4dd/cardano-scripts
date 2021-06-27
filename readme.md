@@ -27,6 +27,10 @@ Extracts the Ledger HW wallet master key data from mnemonics. Together with 'mas
 
 Creates the individual key files from a Daedalus wallet mnemonic, or from a Ledger-extracted master key. The key files enable Cardano network transactions on the commandline, e.g. using 'cardano-cli'. [...details](docs/master2wallet.md)
 
+[stake-register-tx.sh](wallet/stake-register-tx.sh)
+
+Creates a transaction to to register the wallet for staking, paying the stake key deposit (2 ADA). [...details](docs/stake-register-tx.md)
+
 [withdraw-rewards-tx.sh](wallet/withdraw-rewards-tx.sh)
 
 Creates a transaction to withdraw all received staking rewards from the wallet's stake rewards address. A zero balance of the stake rewards address is the prerequiste condition to deregister the wallet from staking, and to reclaim the stake key deposit. [...details](docs/withdraw-rewards-tx.md)
@@ -45,10 +49,18 @@ Creates a signed transaction to withdraw all funds from all address in the walle
 
 ## StakePool-related scripts
 
-[pool-deregister-tx.sh](pool/pool-deregister-tx.sh)
+[pool-register-tx.sh](pool/pool-register-tx.sh)
 
-Creates a transaction to to deregister the stake pool producer node from staking, and to reclaim the pool deposit. This stops the stake pool operation with a minimum lead time of 2 epochs. [...details](docs/pool-deregister-tx.md)
+This script generates the stake pool registration and creates the transaction that submits it to the blockchain, announcing the pool to the world. [...details](docs/pool-register-tx.md)
+
+[pool-update-tx.sh](pool/pool-update-tx.sh)
+
+Creates a transaction to announce updates to the stake pool configuration including pool cost, pledge value, pool margin or relay information. [...details](docs/pool-update-tx.md)
 
 [pool-new-kesperiod.sh](pool/pool-new-kesperiod.sh)
 
 Creates a new operational cert with an updated expiration date. Currently, the certificate expires after 93 days (KES period). Each new cert gets a incremented issuer number (serial) and start date, resetting the KES period. If not renewed, the producer node stops working. [...details](docs/pool-new-kesperiod.md)
+
+[pool-deregister-tx.sh](pool/pool-deregister-tx.sh)
+
+Creates a transaction to to deregister the stake pool producer node from staking, and to reclaim the pool deposit. This stops the stake pool operation with a minimum lead time of 2 epochs. [...details](docs/pool-deregister-tx.md)

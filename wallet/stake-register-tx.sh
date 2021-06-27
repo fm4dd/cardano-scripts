@@ -1,13 +1,12 @@
 #!/bin/bash
 # ##########################################################
-# pool-deregister-tx.sh
-# Creates a stake-pool deregistration cert and builds a
+# stake-register-tx.sh
+# Takes a stake-address registration cert and builds a
 # signed transaction to submit to the Cardano blockchain
-# The output file is named retire-pool-tx.signed
+# The output file is named stake-register-tx.signed
 # 
-# requires the wallet keys extracted, and payment address
-# having enough balance to pay the transaction fee.
-# This needs the node cold keys node.vkey and node.skey
+# Requires the wallet keys extracted, and the payment
+# address with enough balance to pay the transaction fee.
 #
 # Connects to a synced cardano node (using Dadalus wallet
 # node of the local system with ENV CARDANO_NODE_SOCKET_PATH
@@ -15,7 +14,7 @@
 # for balance checks and transaction fee calculation.
 #
 # Usage:
-# ./pool-deregister-tx.sh ~/my-wallet
+# ./stake-register-tx.sh ~/my-wallet
 # ##########################################################
 # ATTENTION: Manual transaction generation is dangerous !!!!
 # !! Unintented key access may cause loss of funds !!!!!!!!!
@@ -26,8 +25,8 @@
 SOCK="CARDANO_NODE_SOCKET_PATH=$HOME/.local/share/Daedalus/mainnet/cardano-node.socket"
 export "$SOCK"
 ONLINECLI="$HOME/bin/cardano-cli"
-OUTFILE="retire-pool-tx.signed"
-CERT="pool-deregistration.cert"
+OUTFILE="stake-register-tx.signed"
+CERT="key-registration.cert"
 
 # ####################################################
 # Check cmdline args: wallet dir, e.g. "~/my-wallet"
@@ -50,39 +49,20 @@ WALLET="$1"
 # ###############################################
 # Prerequisites - Exit if we miss any keys
 # ###############################################
-[[ ! -f "$WALLET"/node.vkey ]] && { echo "missing node.vkey, exit"; exit; }
-[[ ! -f "$WALLET"/node.skey ]] && { echo "missing node.skey, exit"; exit; }
+[[ ! -f "$WALLET"/stake.vkey ]] && { echo "missing node.vkey, exit"; exit; }
+[[ ! -f "$WALLET"/stake.skey ]] && { echo "missing node.skey, exit"; exit; }
+[[ ! -f "$WALLET"/stake.addr ]] && { echo "missing stake.addr, exit"; exit; }
 [[ ! -f "$WALLET"/payment.addr ]] && { echo "missing payment.addr, exit"; exit; }
 [[ ! -f "$WALLET"/payment.skey ]] && { echo "missing payment.skey, exit"; exit; }
 
 # ###############################################
-# query for current and max future epoch, e.g. 18
+# Create key registration file (certificate)
 # ###############################################
-currentEpoch=$($ONLINECLI query tip --mainnet | jq -r '.epoch')
-eMax=$($ONLINECLI query protocol-parameters --mainnet | jq -r '.poolRetireMaxEpoch')
-echo "Queried current epoch=$currentEpoch and max future epoch=+$eMax"
-minEpoch=$(expr $currentEpoch + 2)
-maxEpoch=$(expr $currentEpoch + $eMax)
-
-# ###############################################
-# When should the pool retirement become active?
-# ###############################################
-echo "Define the pool retirement epoch."
-read -p "Choose epoch between $minEpoch and $maxEpoch: " ret_epoch
-if [ -z "$ret_epoch" ]; then
-    ret_epoch=$minEpoch
-fi
-echo "Pool retirement effective in epoch: $ret_epoch"
-
-# ###############################################
-# Create pool deregistration file (certificate)
-# ###############################################
-$ONLINECLI stake-pool deregistration-certificate \
---cold-verification-key-file "$WALLET"/node.vkey \
---epoch $ret_epoch \
+$ONLINECLI stake-address registration-certificate \
+--stake-verification-key-file "$WALLET"/stake.vkey \
 --out-file $CERT
-[[ ! -f "$CERT" ]] && { echo "Error creating deregistration file, exit"; exit; }
-echo "Created pool deregistration file: `ls -l $CERT`"
+[[ ! -f "$CERT" ]] && { echo "Error creating registration file, exit"; exit; }
+echo "Created stake key registration file: `ls -l $CERT`"
 
 # ###############################################
 # How long should the transaction be valid?
@@ -114,25 +94,29 @@ BalanceOut=$($ONLINECLI query utxo --address $payAddr --mainnet | tail -n +3 | s
 if [[ $BalanceOut != *"lovelace"* ]] ; then
     echo "Error: No balance for address $payAddr, exiting..."
     exit 127
+else
+    echo "Got balance of $payAddr"
 fi
-echo "Got balance of $payAddr"
 
 # ###############################################
 # Calculate the payment address balance
 # ###############################################
 tx_in=""
-total_balance=0
+dst_balance=0
 txcnt=0
 while read -r utxo; do
     in_addr=$(awk '{ print $1 }' <<< "${utxo}")
     idx=$(awk '{ print $2 }' <<< "${utxo}")
     utxo_balance=$(awk '{ print $3 }' <<< "${utxo}")
-    total_balance=$((${total_balance}+${utxo_balance}))
+    dst_balance=$((${dst_balance}+${utxo_balance}))
     echo "Incoming->Tx: ${in_addr}#${idx} ADA: ${utxo_balance}"
     tx_in="${tx_in} --tx-in ${in_addr}#${idx}"
     let "txcnt=txcnt+1"
 done <<< "$BalanceOut"
-echo "Addr Balance: ${total_balance} from UTXOs: ${txcnt}"
+echo "Addr Balance: ${dst_balance} from UTXOs: ${txcnt}"
+
+echo "DstAddr Balance: $dst_balance"
+echo "Rewards Balance: $rewards_bal"
 
 # ###############################################
 # Build raw transaction file tx.tmp to get fee
@@ -169,13 +153,14 @@ echo "Transact Fee: $fee"
 # ###############################################
 # Calculate the balance after transaction fee
 # ###############################################
-txOut=$((${total_balance}-${fee}))
+deposit=2000000
+txOut=$((${dst_balance}-${fee}-${deposit}))
 echo "ADA after TX: ${txOut}"
 
 # ###############################################
 # Build the final transaction
 # ###############################################
- $ONLINECLI transaction build-raw \
+$ONLINECLI transaction build-raw \
     ${tx_in} \
     --tx-out "$payAddr"+"$txOut"  \
     --invalid-hereafter $(( ${currentSlot} + ${exp_sec})) \
@@ -192,7 +177,7 @@ echo "TX inputfile: `ls -l tx.raw`"
 $ONLINECLI transaction sign \
     --tx-body-file tx.raw \
     --signing-key-file "$WALLET"/payment.skey \
-    --signing-key-file "$WALLET"/node.skey \
+    --signing-key-file "$WALLET"/stake.skey \
     --mainnet \
     --out-file "$OUTFILE"
 [[ -f "$OUTFILE" ]] && echo "Created signed transaction $OUTFILE"
