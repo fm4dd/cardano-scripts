@@ -38,13 +38,13 @@
 # ####################################################
 # Set the path to the wallet binaries
 # ####################################################
-CADDR=/home/pi/cardano-wallet-linux64/cardano-address
+CADDR=$HOME/bin/cardano-address
 [[ -z "$CADDR" ]] && { echo "cardano-address cannot be found, exiting..." >&2 ; exit 127; }
 
-CCLI=/home/pi/cardano-wallet-linux64/cardano-cli
+CCLI=$HOME/bin/cardano-cli
 [[ -z "$CCLI" ]] && { echo "cardano-cli cannot be found, exiting..." >&2 ; exit 127; }
 
-BECH32=/home/pi/cardano-wallet-linux64/bech32
+BECH32=$HOME/bin/bech32
 [[ -z "$BECH32" ]] && { echo "bech32 cannot be found, exiting..." >&2 ; exit 127; }
 
 # ####################################################

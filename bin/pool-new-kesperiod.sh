@@ -31,7 +31,7 @@ export "$SOCK"
 ONLINECLI="$HOME/bin/cardano-cli"
 CERT="pool-producer-ops.cert"
 # The path for the genesis file to calculate KES periods
-genesisfile="$HOME/conf/shelley-genesis.json"
+genesisfile="$HOME/cardano/conf/shelley-genesis.json"
 
 # ####################################################
 # Check cmdline args: pool dir, e.g. "~/pool-key-dir"

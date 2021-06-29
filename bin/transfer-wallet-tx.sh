@@ -38,8 +38,8 @@ OUTFILE="transfer-wallet-tx.signed"
 # ####################################################
 # Set the path to the wallet binaries
 # ####################################################
-CADDR="$HOME/cardano-wallet-linux64/cardano-address"
-BECH32="$HOME/cardano-wallet-linux64/bech32"
+CADDR="$HOME/bin/cardano-address"
+BECH32="$HOME/bin/bech32"
 [[ -z "$CADDR" ]] && { echo "cardano-address cannot be found, exiting..." >&2 ; exit 127; }
 [[ -z "$BECH32" ]] && { echo "bech32 cannot be found, exiting..." >&2 ; exit 127; }
 
@@ -158,7 +158,8 @@ if [ ${#wallet_addr[@]} -eq 0 ]; then
     echo "Error: No balance found to transfer, ...exiting"
     exit
 fi
-echo "Wallet Balance: $wallet_balance found in ${#wallet_addr[@]} address entries"
+txincnt=${#wallet_addr[@]}
+echo "Wallet Balance: $wallet_balance found in $txincnt address entries"
 
 # ###############################################
 # Input destination payment address
@@ -181,7 +182,7 @@ echo "Dest Addr OK: $payAddr"
 # Calculate dest payment address balance
 # ###############################################
 dst_balance=0       # total balance of dest addr
-txcnt=0             # count of tx in dest addr
+txoutcnt=0          # count of tx in dest addr
 while read -r utxo; do
     dst_addr=$(awk '{ print $1 }' <<< "${utxo}")
     idx=$(awk '{ print $2 }' <<< "${utxo}")
@@ -189,10 +190,10 @@ while read -r utxo; do
     if [ ! -z "$utxo_balance" ]; then
         dst_balance=$((${dst_balance}+${utxo_balance}))
         echo "Incoming->Tx: ${dst_addr}#${idx} ADA: ${utxo_balance}"
-        let "txcnt = $txcnt + 1"
+        let "txoutcnt = $txoutcnt + 1"
     fi
 done <<< "$BalanceOut"
-echo "Addr Balance: ${dst_balance} in ${txcnt} UTXO's"
+echo "Addr Balance: ${dst_balance} in ${txoutcnt} UTXO's"
 
 # ###############################################
 # How long should the transaction be valid?
@@ -226,9 +227,9 @@ done
 # ###############################################
 $ONLINECLI transaction build-raw \
     ${tx_in} \
-    --tx-out "$payAddr"+"0"  \
+    --tx-out ${payAddr}+$((${dst_balance}+${wallet_balance})) \
     --fee 0 \
-    --invalid-hereafter $((${currentSlot} + ${exp_sec})) \
+    --invalid-hereafter $((${currentSlot}+${exp_sec})) \
     --mary-era \
     --out-file tx.tmp
 [[ ! -f tx.tmp ]] && { echo "missing tx.tmp, exiting..."; exit; }
@@ -244,10 +245,10 @@ $ONLINECLI query protocol-parameters --mainnet > params.json
 # ###############################################
 fee=$($ONLINECLI transaction calculate-min-fee \
     --tx-body-file tx.tmp \
-    --tx-in-count ${txcnt} \
+    --tx-in-count ${txincnt} \
     --tx-out-count 1 \
     --mainnet \
-    --witness-count 2 \
+    --witness-count 3 \
     --byron-witness-count 0 \
     --protocol-params-file params.json | awk '{ print $1 }')
 echo "Transact Fee: $fee"
@@ -263,6 +264,7 @@ echo "ADA after TX: ${total_out} (${dst_balance} current balance + ${wallet_bala
 # ###############################################
 tx_out="--tx-out ${payAddr}+${total_out}"
 echo "Out dst addr: ${tx_out}"
+
 
 # ###############################################
 # Build the final transaction

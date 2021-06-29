@@ -9,7 +9,8 @@
 # payment address has enough balance to pay for the
 # transaction fee.
 #
-# Connects to a synced cardano node over SSH for
+# Connects to a synced cardano node over SSH, or uses
+# local Daedalus wallet node to connect for
 # balance checks and transaction fee calculation.
 #
 # Usage:
@@ -21,14 +22,15 @@
 # ##########################################################
 
 # Synced Cardano node CLI connect info, remote host
-SSHTARGET="pi@192.168.1.22"
-ONLINECLI="/home/pi/cardano/relay/bin/cardano-cli"
-SOCK="CARDANO_NODE_SOCKET_PATH=/home/pi/cardano/relay/node.sock"
-# Synced Cardano node CLI connect info, local Daedalus
-#export CARDANO_NODE_SOCKET_PATH="~/.local/share/Daedalus/mainnet/cardano-node.socket"
-#ONLINECLI="~/cardano-wallet-linux64/cardano-cli"
+# SSHTARGET="pi@192.168.1.22"
+# SOCK="CARDANO_NODE_SOCKET_PATH=/home/pi/cardano/relay/node.sock"
+# ONLINECLI="ssh $SSHTARGET export $SOCK && /home/pi/cardano/relay/bin/cardano-cli"
 # for CLI commands that don't need blockchain lookup
-CCLI="~/bin/cardano-cli"
+
+# Synced daedalus wallet node CLI connect info
+SOCK="CARDANO_NODE_SOCKET_PATH=$HOME/.local/share/Daedalus/mainnet/cardano-node.socket"
+export "$SOCK"
+ONLINECLI="$HOME/bin/cardano-cli"
 OUTFILE="withdraw-rewards-tx.signed"
 
 # ####################################################
@@ -71,7 +73,7 @@ echo "Using transaction expiration time: $exp_sec"
 # Find the current slot of the blockchain to use
 # for calculation of the invalid-thereafter value
 # ###############################################
-currentSlot=$(ssh ${SSHTARGET}  "export $SOCK && $ONLINECLI query tip --mainnet" | jq -r '.slot')
+currentSlot=$($ONLINECLI query tip --mainnet | jq -r '.slot')
 echo "Current Slot: $currentSlot"
 
 # ###############################################
@@ -79,7 +81,7 @@ echo "Current Slot: $currentSlot"
 # ###############################################
 stakeAddr=$(cat "$WALLET"/stake.addr)
 echo "Rewards Addr: $stakeAddr"
-RewardsOut=$(ssh ${SSHTARGET}  "export $SOCK && $ONLINECLI query stake-address-info --address ${stakeAddr} --mainnet")
+RewardsOut=$($ONLINECLI query stake-address-info --address ${stakeAddr} --mainnet)
 echo "Rewards output"
 echo "$RewardsOut"
 
@@ -100,7 +102,7 @@ echo "Rewards Balance: $rewards"
 # ###############################################
 payAddr=$(cat "$WALLET"/payment.addr)
 echo "Payment Addr: $payAddr"
-BalanceOut=$(ssh ${SSHTARGET}  "export $SOCK && $ONLINECLI query utxo --address $payAddr --mainnet" | tail -n +3 | sort -k3 -nr)
+BalanceOut=$($ONLINECLI query utxo --address $payAddr --mainnet | tail -n +3 | sort -k3 -nr)
 
 # ###############################################
 # Check if payment address returned any balance
@@ -131,7 +133,7 @@ echo "Addr Balance: ${total_balance} from UTXOs: ${txcnt}"
 # ###############################################
 # Build raw transaction file tx.tmp to get fee
 # ###############################################
-$CCLI transaction build-raw \
+$ONLINECLI transaction build-raw \
     ${tx_in} \
     --tx-out "$payAddr"+"0"  \
     --withdrawal "$stakeAddr"+"0" \
@@ -144,12 +146,12 @@ echo "TX inputfile: `ls -l tx.tmp`"
 # ###############################################
 # Get params file
 # ###############################################
-ssh ${SSHTARGET}  "export $SOCK && $ONLINECLI query protocol-parameters --mainnet" > params.json
+$ONLINECLI query protocol-parameters --mainnet > params.json
 
 # ###############################################
 # Calculate the minimum fee
 # ###############################################
-fee=$("$CCLI" transaction calculate-min-fee \
+fee=$($ONLINECLI transaction calculate-min-fee \
     --tx-body-file tx.tmp \
     --tx-in-count ${txcnt} \
     --tx-out-count 1 \
@@ -168,7 +170,7 @@ echo "ADA after TX: ${txOut}"
 # ###############################################
 # Build the final transaction
 # ###############################################
-"$CCLI" transaction build-raw \
+$ONLINECLI transaction build-raw \
     ${tx_in} \
     --tx-out "$payAddr"+"$txOut"  \
     --withdrawal "$stakeAddr"+"$rewards" \
@@ -181,7 +183,7 @@ echo "TX inputfile: `ls -l tx.raw`"
 # ###############################################
 # Sign transaction with payment.skey & stake.skey
 # ###############################################
-"$CCLI" transaction sign \
+$ONLINECLI transaction sign \
     --tx-body-file tx.raw \
     --signing-key-file "$WALLET"/payment.skey \
     --signing-key-file "$WALLET"/stake.skey \
@@ -191,6 +193,7 @@ echo "TX inputfile: `ls -l tx.raw`"
 echo
 echo "executing temp file cleanup: rm params.json tx.raw tx.tmp"
 rm params.json tx.raw tx.tmp
-echo "Copy the transaction to the synced cardano node, and submit: "
-echo "scp $OUTFILE $SSHTARGET:~/cardano"
+echo "To verify, type: "
+echo "$ONLINECLI transaction view --tx-file $OUTFILE"
+echo "To submit, type: "
 echo "$ONLINECLI transaction submit --tx-file $OUTFILE --mainnet"

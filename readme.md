@@ -19,48 +19,48 @@ This could be from the running Daedalus wallet, or a relay full node running on 
 
 ## Wallet-related scripts
 
-[ledger2master.py](wallet/ledger2master.py)
+[ledger2master.py](bin/ledger2master.py)
 
 Extracts the Ledger HW wallet master key data from mnemonics. Together with 'master2wallet.sh', it converts a Ledger-connected Daedalus HW wallet into a soft wallet. [...details](docs/ledger2master.md)
 
-[master2wallet.sh](wallet/master2wallet.sh)
+[master2wallet.sh](bin/master2wallet.sh)
 
 Creates the individual key files from a Daedalus wallet mnemonic, or from a Ledger-extracted master key. The key files enable Cardano network transactions on the commandline, e.g. using 'cardano-cli'. [...details](docs/master2wallet.md)
 
-[stake-register-tx.sh](wallet/stake-register-tx.sh)
+[stake-register-tx.sh](bin/stake-register-tx.sh)
 
 Creates a transaction to to register the wallet for staking, paying the stake key deposit (2 ADA). [...details](docs/stake-register-tx.md)
 
-[withdraw-rewards-tx.sh](wallet/withdraw-rewards-tx.sh)
+[withdraw-rewards-tx.sh](bin/withdraw-rewards-tx.sh)
 
 Creates a transaction to withdraw all received staking rewards from the wallet's stake rewards address. A zero balance of the stake rewards address is the prerequiste condition to deregister the wallet from staking, and to reclaim the stake key deposit. [...details](docs/withdraw-rewards-tx.md)
 
-[stake-deregister-tx.sh](wallet/stake-deregister-tx.sh)
+[stake-deregister-tx.sh](bin/stake-deregister-tx.sh)
 
 Creates a transaction to to deregister the wallet from staking, and to reclaim the stake key deposit. [...details](docs/stake-deregister-tx.md)
 
-[stake-getandstop-tx.sh](wallet/stake-getandstop-tx.sh)
+[stake-getandstop-tx.sh](bin/stake-getandstop-tx.sh)
 
 Creates a transaction that withdraws the rewards balance into a wallet address, and deregisters the wallet from staking, reclaiming the stake key deposit. This combines the function of withdraw-rewards-tx.sh and stake-deregister-tx.sh into a single transaction. [...details](docs/stake-getandstop-tx.md)
 
-[transfer-wallet-tx.sh](wallet/transfer-wallet-tx.sh)
+[transfer-wallet-tx.sh](bin/transfer-wallet-tx.sh)
 
 Creates a signed transaction to withdraw all funds from all address in the wallet with a single transaction. The remaining wallet balance will be zero. This assumes that the rewards address is already zero. [...details](docs/transfer-wallet-tx.md)
 
 ## StakePool-related scripts
 
-[pool-register-tx.sh](pool/pool-register-tx.sh)
+[pool-register-tx.sh](bin/pool-register-tx.sh)
 
 This script generates the stake pool registration and creates the transaction that submits it to the blockchain, announcing the pool to the world. [...details](docs/pool-register-tx.md)
 
-[pool-update-tx.sh](pool/pool-update-tx.sh)
+[pool-update-tx.sh](bin/pool-update-tx.sh)
 
 Creates a transaction to announce updates to the stake pool configuration including pool cost, pledge value, pool margin or relay information. [...details](docs/pool-update-tx.md)
 
-[pool-new-kesperiod.sh](pool/pool-new-kesperiod.sh)
+[pool-new-kesperiod.sh](bin/pool-new-kesperiod.sh)
 
 Creates a new operational cert with an updated expiration date. Currently, the certificate expires after 93 days (KES period). Each new cert gets a incremented issuer number (serial) and start date, resetting the KES period. If not renewed, the producer node stops working. [...details](docs/pool-new-kesperiod.md)
 
-[pool-deregister-tx.sh](pool/pool-deregister-tx.sh)
+[pool-deregister-tx.sh](bin/pool-deregister-tx.sh)
 
 Creates a transaction to to deregister the stake pool producer node from staking, and to reclaim the pool deposit. This stops the stake pool operation with a minimum lead time of 2 epochs. [...details](docs/pool-deregister-tx.md)
