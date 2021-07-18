@@ -64,3 +64,15 @@ Creates a new operational cert with an updated expiration date. Currently, the c
 [pool-deregister-tx.sh](bin/pool-deregister-tx.sh)
 
 Creates a transaction to to deregister the stake pool producer node from staking, and to reclaim the pool deposit. This stops the stake pool operation with a minimum lead time of 2 epochs. [...details](docs/pool-deregister-tx.md)
+
+[pool-getpeers.sh](bin/pool-getpeers.sh)
+
+Because Cardano does not have peer auto-discovery yet, this script announces our relay to the public, and collects a number of nodes for peering. It outputs into the tolopgy.json configuration file that is read by the relay node during startup. Must run exactly every 60 mins.
+
+[pool-getschedule.sh](bin/pool-getschedule.sh)
+
+Cardano's proof of stake system holds a lottery that pre-assigns the block production for the upcoming epoch. If the pool has sufficient stake and some luck, this script returns the slots for validating a block, or "No slots found for current epoch". Sends an e-mail with the result.
+
+[pool-getstats.sh](bin/pool-getstats.sh)
+
+Queries the pool statistics from the adapools.org API, and formats it as a prom file for feeding the results into the Prometheus/Grafana pool monitoring.
