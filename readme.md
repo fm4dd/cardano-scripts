@@ -76,3 +76,7 @@ Cardano's proof of stake system holds a lottery that pre-assigns the block produ
 [pool-getstats.sh](bin/pool-getstats.sh)
 
 Queries the pool statistics from the adapools.org API, and formats it as a prom file for feeding the results into the Prometheus/Grafana pool monitoring.
+
+[check-node-release.sh](bin/check-node-release.sh)
+
+Checks if Cardano released a new node software to upgrade. It runs periodically on a relay node, and checks the node version against the latest release version available in the Github repo. If a newer one is found, it sends a notification e-mail with the download link to the admin.
